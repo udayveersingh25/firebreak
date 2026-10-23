@@ -1,0 +1,23 @@
+# Render Blueprint: one free web service that serves both the API (/api/*)
+# and the built React app from the same origin.
+# Create it in the Render dashboard with New > Blueprint, then pick this repo.
+services:
+  - type: web
+    name: firebreak
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm run build:render
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Entered in the dashboard when the Blueprint is created; never committed.
+      - key: MONGODB_URI
+        sync: false
+      - key: ADMIN_EMAILS
+        sync: false
+      # Render generates a random 256-bit value.
+      - key: JWT_SECRET
+        generateValue: true
