@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Environment files: never commit real values
+.env
+.env.*
+!.env.example
+
+# Build output and test coverage
+dist/
+coverage/
+
+# OS and editor noise
+.DS_Store
+*.log
