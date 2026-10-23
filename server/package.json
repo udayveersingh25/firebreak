@@ -1,0 +1,20 @@
+{
+  "name": "firebreak-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Firebreak API: breach response for vibe-coded apps",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "node --watch --env-file=.env src/index.js",
+    "start": "node src/index.js",
+    "test": "node --test \"tests/**/*.test.js\""
+  },
+  "dependencies": {
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.1",
+    "helmet": "^8.3.0",
+    "mongoose": "^9.11.3",
+    "zod": "^4.6.7"
+  }
+}
