@@ -109,7 +109,7 @@ values.
 
 | Variable | Required | Example | Notes |
 |---|---|---|---|
-| `MONGODB_URI` | yes | `mongodb+srv://USER:PASSWORD@CLUSTER.mongodb.net/firebreak?retryWrites=true&w=majority` | Atlas connection string with a database name |
+| `MONGODB_URI` | yes | `mongodb+srv://USER:PASSWORD@CLUSTER.mongodb.net/firebreak?retryWrites=true&w=majority` | Atlas connection string with a database name. Use a different one locally (e.g. `firebreak_dev`) so testing never touches live data |
 | `JWT_SECRET` | yes | `<at least 32 random characters>` | Generate: `node -p "crypto.randomBytes(48).toString('base64url')"` |
 | `ADMIN_EMAILS` | yes | `admin@example.com` | Comma-separated; these accounts become admins |
 | `NODE_ENV` | no | `development` | `production` on Render |
