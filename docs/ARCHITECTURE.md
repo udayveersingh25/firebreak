@@ -67,6 +67,7 @@ server/
   src/validators/       zod schemas for each request
   src/rules/            data tables: secret classification rules, frontend prefixes
   tests/                node --test unit and HTTP tests
+demo/                   two demo apps with real npm lockfiles and .env.example files
 scripts/dev.js          runs API and client together in development
 render.yaml             Render deployment settings
 ```
