@@ -88,12 +88,13 @@ describe('auth without a database', () => {
 });
 
 // Runs only when TEST_MONGODB_URI is set. It always uses a separate database
-// named firebreak_test, which is wiped before and after.
+// named firebreak_test_auth, which is wiped before and after (each test file gets its own,
+// because files run in parallel).
 describe('auth with a database', { skip: !process.env.TEST_MONGODB_URI && 'set TEST_MONGODB_URI to run' }, () => {
   const maya = { name: 'Maya', email: 'maya@firebreak.test', password: 'maya-password-1' };
 
   before(async () => {
-    await mongoose.connect(process.env.TEST_MONGODB_URI, { dbName: 'firebreak_test' });
+    await mongoose.connect(process.env.TEST_MONGODB_URI, { dbName: 'firebreak_test_auth' });
     await mongoose.connection.dropDatabase();
     await User.init(); // build the unique email index before the duplicate tests
   });
