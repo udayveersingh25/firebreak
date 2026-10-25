@@ -30,6 +30,10 @@ export function createApp({ clientDistPath, logRequests = false } = {}) {
   const api = express.Router();
   if (logRequests) api.use(requestLogger);
   api.use(apiLimiter());
+  // The lockfile upload is the only route allowed a large body: a 5 MB file
+  // grows when wrapped in JSON. Once it has been read, the 100 kb parser
+  // below sees a finished request and skips it.
+  api.put('/projects/:id/lockfile', express.json({ limit: '6mb' }));
   api.use(express.json({ limit: '100kb' }));
   api.use(cookieParser());
   api.use(apiRoutes);
