@@ -15,6 +15,6 @@
     "build": "npm run build --prefix client",
     "build:render": "npm ci --prefix server --omit=dev && npm ci --prefix client --include=dev && npm run build",
     "start": "node server/src/index.js",
-    "test": "node --test \"server/tests/**/*.test.js\""
+    "test": "node --test \"server/tests/**/*.test.js\" \"client/tests/**/*.test.js\""
   }
 }
