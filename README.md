@@ -4,8 +4,8 @@
 incident affects your app, what is exposed, and what to do first.
 
 - **Live URL:** _added after the first Render deploy_
-- **Status:** in development. Milestone M0 (scaffold and first deploy) is done; features
-  below are checked off as they ship.
+- **Status:** in development. Accounts and login (M1) work; the features below are checked
+  off as they ship.
 
 ## Problem Statement
 
@@ -97,7 +97,8 @@ Other scripts:
 
 | Command | What it does |
 |---|---|
-| `npm test` | Runs all unit and HTTP tests |
+| `npm test` | Runs all unit and HTTP tests (database tests are skipped) |
+| `TEST_MONGODB_URI=<uri> npm test` | Also runs the database tests, in a separate `firebreak_test` database that is wiped before and after |
 | `npm run build` | Builds the website into `client/dist` |
 | `npm start` | Production mode: one server on `PORT` serving the API and `client/dist` |
 
@@ -140,8 +141,12 @@ first request after that can take about a minute while the service wakes up.
   reason and the action that resolves it.
 - **Users only see their own data.** Another user's project returns 404, so its existence
   is not revealed. Admins see aggregate counts, never inventories.
-- **Hardening:** helmet security headers, rate limits, strict request validation, request
-  bodies never logged, generic error messages in production.
+- **Sessions:** a JWT holding only the user ID, in an `httpOnly`, `SameSite=Lax` cookie
+  (`Secure` in production). Passwords are hashed with bcrypt (cost 12). Login failures
+  never reveal whether an email has an account.
+- **Hardening:** helmet security headers, rate limits (10 sign-ups and 10 failed logins per
+  15 minutes per IP), strict zod validation that blocks NoSQL operator injection, request
+  bodies never logged, generic error messages for unexpected failures.
 
 ## Data Sources
 

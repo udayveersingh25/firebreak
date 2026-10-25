@@ -63,7 +63,8 @@ server/
   src/controllers/      HTTP concerns: read the request, call services, send the response
   src/services/         business logic as pure functions, unit tested
   src/models/           Mongoose schemas
-  src/middlewares/      auth, ownership checks, validation, errors
+  src/middlewares/      auth, ownership checks, validation, rate limits, errors
+  src/validators/       zod schemas for each request
   src/rules/            data tables: secret classification rules, frontend prefixes
   tests/                node --test unit and HTTP tests
 scripts/dev.js          runs API and client together in development

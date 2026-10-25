@@ -71,3 +71,64 @@ Tailwind and a landing page; a dev runner; tests; a Render Blueprint.
 **Versions** (latest stable on 23 Oct 2026): Express 5.3, Mongoose 9.11, Zod 4.6,
 React 19.3, React Router 8.5, Vite 8.3, Tailwind CSS 4.3. React Router 8 removed the
 `react-router-dom` package; `RouterProvider` now comes from `react-router/dom`.
+
+## M1: Accounts and login (25 Oct 2026)
+
+**Built:** register, login, logout and "who am I" endpoints; a User model; login and
+sign-up pages with every state (empty, invalid, sending, server error, success);
+pages that require login; toasts; 43 tests, 9 of which run against a real database.
+
+**Decisions**
+
+1. **`cookie-parser` for reading the login cookie** (owner's choice). It is the Express
+   team's own package; hand-written cookie parsing in a security product is something
+   evaluators would rightly probe. *Rejected:* a 10-line custom parser.
+
+2. **The cookie is the session; JavaScript cannot see it.** The token is a JWT holding
+   only the user ID, valid 7 days, in an `httpOnly`, `SameSite=Lax` cookie (`Secure` in
+   production). `httpOnly` means even an injected script cannot steal it. `SameSite=Lax`
+   means other websites cannot make your browser send it with a POST, which is our
+   protection against cross-site request forgery. *Rejected:* storing the token in
+   localStorage, where any script on the page can read it.
+
+3. **Every request re-reads the user from the database.** Deleting an account or changing
+   a role takes effect on the next request, not when the 7-day token runs out. A test
+   checks both.
+
+4. **Login never reveals which emails have accounts.** Wrong password and unknown email
+   get the same message, "Invalid email or password." We also run bcrypt for unknown
+   emails, so the two cases take the same time. Registration does say "this email
+   already has an account" (the spec asks for 409), which is the usual trade-off: a
+   clear sign-up experience over hiding that an account exists.
+
+5. **Admins come only from `ADMIN_EMAILS`.** zod drops unknown fields, so sending
+   `"role": "admin"` in a sign-up does nothing. A test proves it.
+
+6. **Passwords: 8 to 72 characters, bcrypt cost 12.** bcrypt silently ignores anything
+   after 72 bytes, so we reject longer passwords instead of pretending to use them.
+
+7. **The algorithm is pinned (HS256) when checking tokens.** Otherwise a forged token
+   could claim `"alg": "none"` and skip the signature. A test tries it.
+
+8. **Rate limits that stop guessing without punishing users.** Sign-up: 10 per 15
+   minutes per IP. Login: 10 *failed* attempts per 15 minutes; successful logins do not
+   count, so switching between demo accounts never locks anyone out. The limits apply
+   only to these two routes. Applying them to "who am I", which every page load calls,
+   would lock people out of the app for browsing it.
+
+9. **Logout works without a valid session.** It just clears the cookie, so it can never
+   fail. A small deviation from the spec's table, which lists logout as "user only": an
+   expired session should still be able to log out cleanly.
+
+10. **"Not logged in" and "could not check" are different states.** If the server is
+    unreachable, the app says "We could not check your session" with a retry button,
+    instead of showing the login page as if you were logged out. Three-state truth again.
+
+11. **Form errors appear in the form, success appears as a toast.** A problem with what
+    you typed is shown next to the field (and the first one gets focus), because a toast
+    disappears and is not next to the thing to fix. Actions without a form, such as
+    logout, use toasts for both success and failure.
+
+12. **Database tests use their own database.** With `TEST_MONGODB_URI` set, the auth
+    tests connect to a database named `firebreak_test`, wipe it before and after, and
+    never touch real data. Without it they are skipped, so `npm test` works anywhere.
