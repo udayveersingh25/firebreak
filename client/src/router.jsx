@@ -5,7 +5,9 @@ import RequireAuth from './components/RequireAuth.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import LandingPage from './pages/LandingPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
+import NewProjectPage from './pages/NewProjectPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
+import ProjectPage from './pages/ProjectPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import RouteErrorPage from './pages/RouteErrorPage.jsx';
 
@@ -29,7 +31,11 @@ export const router = createBrowserRouter([
           },
           {
             element: <RequireAuth />,
-            children: [{ path: 'dashboard', element: <DashboardPage /> }],
+            children: [
+              { path: 'dashboard', element: <DashboardPage /> },
+              { path: 'projects/new', element: <NewProjectPage /> },
+              { path: 'projects/:id', element: <ProjectPage /> },
+            ],
           },
           { path: '*', element: <NotFoundPage /> },
         ],
