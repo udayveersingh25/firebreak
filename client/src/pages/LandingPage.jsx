@@ -1,4 +1,6 @@
+import { ButtonLink } from '../components/Button.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
+import { useAuth } from '../hooks/useAuth.js';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 
 const QUESTIONS = [
@@ -41,6 +43,7 @@ const STATUS_MEANINGS = [
 
 export default function LandingPage() {
   usePageTitle();
+  const { status } = useAuth();
 
   return (
     <>
@@ -57,6 +60,18 @@ export default function LandingPage() {
             vulnerability or breach is announced, it tells you if you are affected, what is exposed, and
             what to do first, in plain language.
           </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            {status === 'authenticated' ? (
+              <ButtonLink to="/dashboard">Go to your dashboard</ButtonLink>
+            ) : (
+              <>
+                <ButtonLink to="/register">Get started, it's free</ButtonLink>
+                <ButtonLink to="/login" variant="secondary">
+                  Log in
+                </ButtonLink>
+              </>
+            )}
+          </div>
         </div>
       </section>
 
