@@ -1,14 +1,12 @@
 import path from 'node:path';
+import cookieParser from 'cookie-parser';
 import express from 'express';
 import helmet from 'helmet';
-import { rateLimit } from 'express-rate-limit';
 import apiRoutes from './routes/index.js';
 import healthRoutes from './routes/health.routes.js';
 import { apiNotFound, errorHandler, notFound } from './middlewares/errorHandler.js';
+import { apiLimiter } from './middlewares/rateLimits.js';
 import { requestLogger } from './middlewares/requestLogger.js';
-import { HttpError } from './utils/httpError.js';
-
-const FIFTEEN_MINUTES = 15 * 60 * 1000;
 
 /**
  * Builds the Express app. One origin serves both the JSON API (/api/*) and the
@@ -31,17 +29,9 @@ export function createApp({ clientDistPath, logRequests = false } = {}) {
 
   const api = express.Router();
   if (logRequests) api.use(requestLogger);
-  api.use(
-    rateLimit({
-      windowMs: FIFTEEN_MINUTES,
-      limit: 300,
-      standardHeaders: 'draft-8',
-      legacyHeaders: false,
-      handler: (req, res, next) =>
-        next(new HttpError(429, 'RATE_LIMITED', 'Too many requests. Please wait a few minutes and try again.')),
-    }),
-  );
+  api.use(apiLimiter());
   api.use(express.json({ limit: '100kb' }));
+  api.use(cookieParser());
   api.use(apiRoutes);
   api.use(apiNotFound);
   app.use('/api', api);

@@ -31,7 +31,8 @@ export function errorHandler(err, req, res, next) {
     console.error(`[error] ${req.method} ${req.originalUrl.split('?')[0]}\n${err?.stack ?? err}`);
   }
 
-  res.status(status).json({ error: details ? { code, message, details } : { code, message } });
+  // `details` adds safe extras, e.g. { fields: { email: 'Enter a valid email address' } }.
+  res.status(status).json({ error: { code, message, ...details } });
 }
 
 function toPublicError(err) {
