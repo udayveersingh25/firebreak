@@ -3,7 +3,7 @@
 **Breach response for vibe-coded apps.** Firebreak tells you whether a security
 incident affects your app, what is exposed, and what to do first.
 
-- **Live URL:** _added after the first Render deploy_
+- **Live URL:** https://firebreak-0y7c.onrender.com (free tier: the first visit after 15 idle minutes takes about a minute)
 - **Status:** in development. Accounts and login (M1) work; the features below are checked
   off as they ship.
 
