@@ -7,7 +7,8 @@ export default function Logo() {
         <path d="M9 9h11L9 20z" fill="#f97316" />
         <path d="M23 12v11H12z" fill="#e2e8f0" />
       </svg>
-      Firebreak
+      {/* On very narrow phones the header needs the room; screen readers still hear the name. */}
+      <span className="max-[400px]:sr-only">Firebreak</span>
     </span>
   );
 }

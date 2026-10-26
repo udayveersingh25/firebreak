@@ -7,6 +7,10 @@ import LandingPage from './pages/LandingPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import NewProjectPage from './pages/NewProjectPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
+import NotificationsPage from './pages/NotificationsPage.jsx';
+import AdminIncidentEditorPage from './pages/admin/AdminIncidentEditorPage.jsx';
+import AdminIncidentsPage from './pages/admin/AdminIncidentsPage.jsx';
+import RequireAdmin from './components/RequireAdmin.jsx';
 import ProjectPage from './pages/ProjectPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import RouteErrorPage from './pages/RouteErrorPage.jsx';
@@ -35,6 +39,15 @@ export const router = createBrowserRouter([
               { path: 'dashboard', element: <DashboardPage /> },
               { path: 'projects/new', element: <NewProjectPage /> },
               { path: 'projects/:id', element: <ProjectPage /> },
+              { path: 'notifications', element: <NotificationsPage /> },
+              {
+                element: <RequireAdmin />,
+                children: [
+                  { path: 'admin/incidents', element: <AdminIncidentsPage /> },
+                  { path: 'admin/incidents/new', element: <AdminIncidentEditorPage /> },
+                  { path: 'admin/incidents/:id', element: <AdminIncidentEditorPage /> },
+                ],
+              },
             ],
           },
           { path: '*', element: <NotFoundPage /> },

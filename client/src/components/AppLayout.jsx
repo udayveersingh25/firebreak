@@ -3,10 +3,20 @@ import { Link, NavLink, Outlet, ScrollRestoration, useNavigate } from 'react-rou
 import { logout } from '../api/auth.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { useToast } from '../hooks/useToast.js';
+import { useUnreadCount } from '../hooks/useUnreadCount.js';
 import { Button, ButtonLink } from './Button.jsx';
 import Logo from './Logo.jsx';
+import UnreadCountProvider from './UnreadCountProvider.jsx';
 
 export default function AppLayout() {
+  return (
+    <UnreadCountProvider>
+      <Layout />
+    </UnreadCountProvider>
+  );
+}
+
+function Layout() {
   return (
     <div className="flex min-h-dvh flex-col">
       <a
@@ -76,15 +86,16 @@ function AccountNav() {
   if (status === 'authenticated') {
     return (
       <nav aria-label="Account" className="flex items-center gap-1 sm:gap-2">
-        <NavLink
-          to="/dashboard"
-          className={({ isActive }) =>
-            `rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-100 ${isActive ? 'text-slate-900' : 'text-slate-600'}`
-          }
-        >
+        <NavLink to="/dashboard" className={navLinkClass}>
           Dashboard
         </NavLink>
-        <span className="hidden max-w-40 truncate px-2 text-sm text-slate-500 sm:inline">{user.name}</span>
+        {user.role === 'admin' && (
+          <NavLink to="/admin/incidents" className={navLinkClass}>
+            Incidents
+          </NavLink>
+        )}
+        <NotificationBell />
+        <span className="hidden max-w-40 truncate px-2 text-sm text-slate-500 md:inline">{user.name}</span>
         <Button variant="ghost" loading={loggingOut} onClick={handleLogout}>
           Log out
         </Button>
@@ -103,5 +114,34 @@ function AccountNav() {
       </ButtonLink>
       <ButtonLink to="/register">Get started</ButtonLink>
     </nav>
+  );
+}
+
+const navLinkClass = ({ isActive }) =>
+  `rounded-lg px-2 py-2 text-sm font-medium hover:bg-slate-100 sm:px-3 ${isActive ? 'text-slate-900' : 'text-slate-600'}`;
+
+function NotificationBell() {
+  const { count } = useUnreadCount();
+  return (
+    <NavLink
+      to="/notifications"
+      className={({ isActive }) =>
+        `relative rounded-lg p-2 hover:bg-slate-100 ${isActive ? 'text-slate-900' : 'text-slate-600'}`
+      }
+    >
+      <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+        <path d="M6 9a6 6 0 1 1 12 0c0 5 2 6.5 2 6.5H4S6 14 6 9Z" strokeLinejoin="round" />
+        <path d="M10 19a2 2 0 0 0 4 0" strokeLinecap="round" />
+      </svg>
+      <span className="sr-only">Notifications{count > 0 ? `, ${count} unread` : ''}</span>
+      {count > 0 && (
+        <span
+          aria-hidden="true"
+          className="absolute top-0.5 right-0.5 flex min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-semibold text-white"
+        >
+          {count > 9 ? '9+' : count}
+        </span>
+      )}
+    </NavLink>
   );
 }

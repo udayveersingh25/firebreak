@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { Incident } from '../models/Incident.js';
 import { IncidentResponse, RESPONSE_STATUSES } from '../models/IncidentResponse.js';
+import { OVERRIDE_SERVICES } from '../services/envClassifier.js';
 import { fanOutIncident, previewIncident } from '../services/fanOut.js';
 import { HttpError } from '../utils/httpError.js';
 
@@ -27,6 +28,14 @@ async function responseCountsByIncident() {
   return counts;
 }
 
+// Choices for a "service" target in the incident editor.
+const TARGET_OPTIONS = {
+  services: OVERRIDE_SERVICES.filter((service) => service.serviceKey !== 'unknown').map(({ serviceKey, serviceLabel }) => ({
+    serviceKey,
+    serviceLabel,
+  })),
+};
+
 const emptyCounts = () => Object.fromEntries(RESPONSE_STATUSES.map((status) => [status, 0]));
 
 export async function listIncidents(req, res) {
@@ -36,13 +45,17 @@ export async function listIncidents(req, res) {
       ...incident.toJSON(),
       responseCounts: counts.get(String(incident._id)) ?? emptyCounts(),
     })),
+    targetOptions: TARGET_OPTIONS,
   });
 }
 
 export async function getIncident(req, res) {
   const incident = await loadIncident(req.params.id);
   const counts = await responseCountsByIncident();
-  res.json({ incident: { ...incident.toJSON(), responseCounts: counts.get(String(incident._id)) ?? emptyCounts() } });
+  res.json({
+    incident: { ...incident.toJSON(), responseCounts: counts.get(String(incident._id)) ?? emptyCounts() },
+    targetOptions: TARGET_OPTIONS,
+  });
 }
 
 export async function createIncident(req, res) {
