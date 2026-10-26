@@ -241,3 +241,62 @@ way to correct a secret's service or impact, and the overview's scan states. 118
 
 8. **Tests use a fake OSV server.** The test settings point `OSV_BASE_URL` at a small local
    server that serves the saved records or answers 503, so "OSV is down" is tested for real.
+
+## M4: Publishing incidents (26 Oct 2026)
+
+**Built:** the incident matcher; incident, response and notification models; the admin
+API and pages (draft, preview, publish, archive); notifications with a bell; matching
+for projects that join later. 153 tests.
+
+**Decisions**
+
+1. **The matcher is a pure function.** It takes an incident and a project and returns
+   affected, not affected, or unknown, with a sentence explaining why, and the secrets
+   at risk. No database, so every rule has a fast unit test, including "calm-notes is
+   not affected by any demo incident".
+
+2. **Preview and publish run the same code.** Both use one loop over all projects (read
+   through a cursor, so memory stays flat), so the preview count is by construction what
+   publishing creates. A test checks the numbers match.
+
+3. **Publishing is safe to repeat.** Responses are upserted against a unique
+   `{incident, project}` index; notifications carry a unique `dedupeKey`. Publishing
+   twice changes nothing, and if a publish crashed halfway, publishing again finishes
+   the job. A test deletes a notification "lost to a crash" and checks the retry restores
+   exactly one. *Small model addition:* `dedupeKey` on notifications. The spec's "one
+   notification per newly created response" alone could not heal a crash between the
+   two writes.
+
+4. **Fan-out runs inside the publish request.** Fine at this scale (a few hundred
+   projects take seconds). In production this would move to a job queue so a publish
+   never times out and work is retried automatically.
+
+5. **The incident is marked published before the fan-out.** A project created during
+   the fan-out is then caught by late-joiner matching. Without this, it would be missed
+   by both.
+
+6. **Late joiners.** Creating a project, uploading a lockfile, changing secret names or
+   correcting a secret re-checks the project against every published incident. A
+   response waiting for information becomes "open" (with a new notification) or
+   "not affected: Checked after your upload". Responses already being worked on are left
+   to the user.
+
+7. **"Unknown" always says what is missing.** For example: "Upload your package-lock.json
+   so we can check", or "Add your environment variable names so we can check whether this
+   project uses LiteLLM proxy."
+
+8. **Compromise versus vulnerability.** A vulnerability's fix is an upgrade, so no secrets
+   are listed. A compromised package can read `process.env`, so every server-side secret
+   is listed; for a dev-only package the reason says your local `.env` is what is exposed.
+   A host breach exposes everything in that host's environment settings.
+
+9. **Admins see totals, never inventories.** The admin list counts responses by status
+   using a database aggregation; no project names, owners or secret names are sent. Admin
+   routes are 403 for everyone else, and an admin opening someone's project gets the same
+   404 as anyone. Tests check both.
+
+10. **Version ranges are validated when saved** with `semver.validRange`, so the matcher
+    never meets a range it cannot read.
+
+11. **Deleting a project removes its responses and their notifications**, so no
+    notification ever links to something that no longer exists.

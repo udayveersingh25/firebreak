@@ -107,3 +107,29 @@ sequenceDiagram
 ```
 
 Any OSV error or 10-second timeout fails the whole scan, so results are never partial.
+
+## Publishing an incident (fan-out)
+
+```mermaid
+flowchart TB
+  admin(["Admin: Publish"]) --> publish["Mark incident published"]
+  publish --> cursor["Read projects one at a time (cursor)"]
+  cursor --> match{"matchIncident(incident, project)"}
+  match -->|"not affected"| next["Next project"]
+  match -->|"affected or unknown"| upsert["Upsert response on unique {incident, project}"]
+  upsert --> notify["Upsert notification on unique dedupeKey"]
+  notify --> next
+  next --> cursor
+  cursor -->|"done"| counts["Save matchedCounts { affected, unknown }"]
+
+  preview(["Admin: Preview"]) --> cursor2["Same loop, nothing written"] --> counts2["Return { affected, unknown }"]
+
+  late(["Project created, lockfile or secrets changed"]) --> rematch["Match against every published incident"]
+  rematch -->|"no response yet"| upsert
+  rematch -->|"response was unknown"| update["Becomes open (notify) or not affected"]
+```
+
+- **Idempotent:** the unique indexes mean publishing twice, or after a crash, never
+  creates a duplicate response or notification. It only fills gaps.
+- **Preview equals publish:** both use the same matching loop.
+- **At larger scale** the fan-out would run in a job queue instead of the publish request.
