@@ -1,5 +1,6 @@
 import { Project } from '../models/Project.js';
 import { applyOverride, classifyNames, OVERRIDE_SERVICES } from '../services/envClassifier.js';
+import { deleteProjectResponses, rematchProject } from '../services/fanOut.js';
 import { LockfileError, parseLockfile } from '../services/lockfileParser.js';
 import { expireStaleScan, secondsUntilNextScan, startScan } from '../services/projectScan.js';
 import { countByPriority } from '../services/triage.js';
@@ -28,6 +29,8 @@ export async function listProjects(req, res) {
 
 export async function createProject(req, res) {
   const project = await Project.create({ ...req.validated.body, owner: req.user._id });
+  // A project added after an incident was published is matched straight away.
+  await rematchProject(project._id);
   res.status(201).json({ project });
 }
 
@@ -42,6 +45,7 @@ export async function getProject(req, res) {
 }
 
 export async function deleteProject(req, res) {
+  await deleteProjectResponses(req.project._id);
   await req.project.deleteOne();
   res.status(204).end();
 }
@@ -64,6 +68,7 @@ export async function uploadLockfile(req, res) {
   project.dependencies = parsed.dependencies;
   // A new lockfile is always checked straight away; old findings are cleared.
   await startScan(project);
+  await rematchProject(project._id);
 
   res.json({ project });
 }
@@ -101,6 +106,7 @@ export async function replaceSecrets(req, res) {
   });
   project.secretsUpdatedAt = new Date();
   await project.save();
+  await rematchProject(project._id);
 
   res.json({ project });
 }
@@ -112,6 +118,7 @@ export async function overrideSecret(req, res) {
 
   project.secrets.set(index, applyOverride(project.secrets[index].toObject(), req.validated.body));
   await project.save();
+  await rematchProject(project._id);
 
   res.json({ project });
 }
