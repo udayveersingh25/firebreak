@@ -4,7 +4,7 @@
 incident affects your app, what is exposed, and what to do first.
 
 - **Live URL:** https://firebreak-0y7c.onrender.com (free tier: the first visit after 15 idle minutes takes about a minute)
-- **Status:** in development. Accounts and project onboarding work; the features below are checked
+- **Status:** in development. Onboarding and the exposure check work; the features below are checked
   off as they ship.
 
 ## Problem Statement
@@ -35,7 +35,7 @@ flag things that are fine.
 
 - [x] **Onboard a project:** upload `package-lock.json`; paste `.env` and only the
       variable names leave your browser
-- [ ] **Exposure check:** secrets bundled into your website, known vulnerabilities from
+- [x] **Exposure check:** secrets bundled into your website, known vulnerabilities from
       OSV.dev, ranked by real-world risk
 - [ ] **Incident publishing (admin):** preview how many projects are affected, publish,
       notify, with no duplicates on retry

@@ -80,3 +80,30 @@ render.yaml             Render deployment settings
    readable error instead of hanging.
 3. The app starts listening. On `SIGTERM` (sent by Render before replacing an
    instance) it finishes in-flight requests, closes the database connection and exits.
+
+## Vulnerability scan
+
+```mermaid
+sequenceDiagram
+  participant B as Browser
+  participant A as API
+  participant D as MongoDB
+  participant O as OSV.dev
+  B->>A: PUT /projects/:id/lockfile (raw text)
+  A->>A: parse lockfile into (name, version) pairs
+  A->>D: save dependencies, scan = running (new run ID)
+  A-->>B: 200, scan running
+  par in the background
+    A->>O: POST /v1/querybatch (1,000 per request, follow next_page_token)
+    O-->>A: vulnerability IDs per package
+    A->>D: read cached advisories (24 h)
+    A->>O: GET /v1/vulns/{id} for the rest, 5 at a time
+    A->>A: map, then triage (Fix now / Fix soon / Plan a fix / Low real-world risk)
+    A->>D: save findings, only if the run ID is still current
+  and every 2 seconds
+    B->>A: GET /projects/:id
+    A-->>B: running, then succeeded or failed
+  end
+```
+
+Any OSV error or 10-second timeout fails the whole scan, so results are never partial.
