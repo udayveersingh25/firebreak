@@ -71,6 +71,8 @@ const projectSchema = new mongoose.Schema(
       lastRunAt: { type: Date, default: null },
       error: { type: String, default: null },
       packagesScanned: { type: Number, default: 0 },
+      // Identifies the latest run, so a slow older run cannot overwrite a newer one.
+      runId: { type: String, default: null },
     },
     findings: { type: [findingSchema], default: [] },
   },
@@ -82,6 +84,7 @@ const projectSchema = new mongoose.Schema(
         delete ret._id;
         delete ret.__v;
         delete ret.owner;
+        if (ret.scan) delete ret.scan.runId;
         return ret;
       },
     },

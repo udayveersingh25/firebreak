@@ -1,13 +1,15 @@
 import { Project } from '../models/Project.js';
-import { classifyNames } from '../services/envClassifier.js';
+import { applyOverride, classifyNames } from '../services/envClassifier.js';
 import { LockfileError, parseLockfile } from '../services/lockfileParser.js';
+import { expireStaleScan, secondsUntilNextScan, startScan } from '../services/projectScan.js';
+import { countByPriority } from '../services/triage.js';
 import { HttpError } from '../utils/httpError.js';
 
 export async function listProjects(req, res) {
   const projects = await Project.find({ owner: req.user._id })
-    .select('name hostingProvider lockfile secrets.exposedInFrontend secretsUpdatedAt scan.status createdAt updatedAt')
-    .sort({ updatedAt: -1 })
-    .lean();
+    .select('name hostingProvider lockfile secrets.exposedInFrontend secretsUpdatedAt scan findings.priority createdAt updatedAt')
+    .sort({ updatedAt: -1 });
+  await Promise.all(projects.map((project) => expireStaleScan(project)));
 
   res.json({
     projects: projects.map((project) => ({
@@ -18,6 +20,7 @@ export async function listProjects(req, res) {
       secretCount: project.secretsUpdatedAt ? project.secrets.length : null,
       exposedCount: project.secrets.filter((secret) => secret.exposedInFrontend).length,
       scanStatus: project.scan.status,
+      findingCounts: project.scan.status === 'succeeded' ? countByPriority(project.findings) : null,
       updatedAt: project.updatedAt,
     })),
   });
@@ -28,7 +31,8 @@ export async function createProject(req, res) {
   res.status(201).json({ project });
 }
 
-export function getProject(req, res) {
+export async function getProject(req, res) {
+  await expireStaleScan(req.project);
   res.json({ project: req.project });
 }
 
@@ -53,34 +57,55 @@ export async function uploadLockfile(req, res) {
     packageCount: parsed.packageCount,
   };
   project.dependencies = parsed.dependencies;
-  // Findings from the previous lockfile no longer describe what is installed.
-  project.findings = [];
-  project.scan = { status: 'never', lastRunAt: null, error: null, packagesScanned: 0 };
-  await project.save();
+  // A new lockfile is always checked straight away; old findings are cleared.
+  await startScan(project);
 
   res.json({ project });
 }
 
+export async function scanProject(req, res) {
+  const { project } = req;
+  if (!project.lockfile) {
+    throw new HttpError(409, 'NO_LOCKFILE', 'Upload your package-lock.json first, so we know what to check.');
+  }
+  const wait = secondsUntilNextScan(project);
+  if (wait > 0) {
+    throw new HttpError(
+      429,
+      'SCAN_TOO_SOON',
+      `This project was checked moments ago. Please wait ${wait} seconds before checking again.`,
+    );
+  }
+
+  await startScan(project);
+  res.status(202).json({ project });
+}
+
 export async function replaceSecrets(req, res) {
   const { project } = req;
-  const previous = new Map(project.secrets.map((secret) => [secret.name, secret]));
+  const previous = new Map(project.secrets.map((secret) => [secret.name, secret.toObject()]));
 
   project.secrets = classifyNames(req.validated.body.names).map((secret) => {
     // Keep what the user already told us about a secret that is still there.
     const known = previous.get(secret.name);
     if (!known) return secret;
     const kept = { ...secret, lastRotatedAt: known.lastRotatedAt };
-    if (!known.userOverride) return kept;
-    return {
-      ...kept,
-      userOverride: true,
-      serviceKey: known.serviceKey,
-      serviceLabel: known.serviceLabel,
-      capability: known.capability,
-      criticality: known.criticality,
-    };
+    return known.userOverride
+      ? applyOverride(kept, { serviceKey: known.serviceKey, criticality: known.criticality })
+      : kept;
   });
   project.secretsUpdatedAt = new Date();
+  await project.save();
+
+  res.json({ project });
+}
+
+export async function overrideSecret(req, res) {
+  const { project } = req;
+  const index = project.secrets.findIndex((secret) => secret.name === req.validated.params.name);
+  if (index === -1) throw new HttpError(404, 'NOT_FOUND', 'This project has no variable with that name.');
+
+  project.secrets.set(index, applyOverride(project.secrets[index].toObject(), req.validated.body));
   await project.save();
 
   res.json({ project });

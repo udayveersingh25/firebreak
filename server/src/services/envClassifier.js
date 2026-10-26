@@ -44,6 +44,41 @@ export function classifyName(name) {
   };
 }
 
+/** Services a user can assign to a secret: one entry per serviceKey, from its first non-public rule. */
+export const OVERRIDE_SERVICES = [
+  ...new Map(
+    SERVICE_RULES.filter((rule) => !rule.publicByDesign).map((rule) => [
+      rule.serviceKey,
+      { serviceKey: rule.serviceKey, serviceLabel: rule.serviceLabel, capability: rule.capability },
+    ]),
+  ).values(),
+  { serviceKey: UNKNOWN_SERVICE.serviceKey, serviceLabel: UNKNOWN_SERVICE.serviceLabel, capability: UNKNOWN_SERVICE.capability },
+];
+
+/**
+ * Applies the user's correction of service and/or criticality. Choosing
+ * "public" marks the variable as public by design, which also clears a
+ * browser-exposure flag: the user knows their app better than our rules do.
+ */
+export function applyOverride(secret, { serviceKey, criticality }) {
+  const service = serviceKey ? OVERRIDE_SERVICES.find((entry) => entry.serviceKey === serviceKey) : null;
+  const next = {
+    ...secret,
+    ...(service ?? {}),
+    criticality: criticality ?? secret.criticality,
+    userOverride: true,
+  };
+  next.publicByDesign = next.criticality === 'public';
+
+  const split = splitFrontendPrefix(next.name);
+  next.exposedInFrontend =
+    Boolean(split) && !next.publicByDesign && looksSecret(next.name, { criticality: next.criticality });
+  next.exposureReason = next.exposedInFrontend
+    ? `Variables starting with ${split.prefix} are bundled into your website's JavaScript. Anyone can open DevTools and copy this key.`
+    : null;
+  return next;
+}
+
 // A browser-visible variable is only flagged when it is clearly a secret:
 // a known high-impact key, or a name that says so. Anything else stays quiet,
 // because false alarms break the "calm and correct" promise.
