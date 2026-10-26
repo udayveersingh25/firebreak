@@ -1,5 +1,5 @@
 import { Project } from '../models/Project.js';
-import { applyOverride, classifyNames } from '../services/envClassifier.js';
+import { applyOverride, classifyNames, OVERRIDE_SERVICES } from '../services/envClassifier.js';
 import { LockfileError, parseLockfile } from '../services/lockfileParser.js';
 import { expireStaleScan, secondsUntilNextScan, startScan } from '../services/projectScan.js';
 import { countByPriority } from '../services/triage.js';
@@ -31,9 +31,14 @@ export async function createProject(req, res) {
   res.status(201).json({ project });
 }
 
+// Choices for correcting a secret's service, sent with the project overview.
+const OVERRIDE_OPTIONS = {
+  services: OVERRIDE_SERVICES.map(({ serviceKey, serviceLabel }) => ({ serviceKey, serviceLabel })),
+};
+
 export async function getProject(req, res) {
   await expireStaleScan(req.project);
-  res.json({ project: req.project });
+  res.json({ project: req.project, overrideOptions: OVERRIDE_OPTIONS });
 }
 
 export async function deleteProject(req, res) {

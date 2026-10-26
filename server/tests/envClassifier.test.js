@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { classifyName, classifyNames } from '../src/services/envClassifier.js';
+import { applyOverride, classifyName, classifyNames } from '../src/services/envClassifier.js';
 import { SERVICE_RULES } from '../src/rules/serviceRules.js';
 
 test('vibe-store: flags VITE_OPENAI_API_KEY and not VITE_STRIPE_PUBLISHABLE_KEY', () => {
@@ -100,4 +100,34 @@ test('every rule has the fields the playbook needs', () => {
     assert.ok(rule.serviceKey && rule.serviceLabel && rule.capability && rule.criticality, String(rule.pattern));
     if (rule.rotateUrl) assert.match(rule.rotateUrl, /^https:\/\//);
   }
+});
+
+test('correcting only the impact keeps the description', () => {
+  const corrected = applyOverride(classifyName('STRIPE_SECRET_KEY'), { serviceKey: 'stripe', criticality: 'high' });
+
+  assert.equal(corrected.criticality, 'high');
+  assert.match(corrected.capability, /^Create charges/);
+  assert.equal(corrected.userOverride, true);
+});
+
+test('marking a flagged variable as public clears the flag', () => {
+  const corrected = applyOverride(classifyName('VITE_OPENAI_API_KEY'), { criticality: 'public' });
+
+  assert.equal(corrected.publicByDesign, true);
+  assert.equal(corrected.exposedInFrontend, false);
+  assert.equal(corrected.exposureReason, null);
+});
+
+test('a public variable raised to high gets a real description and can be flagged', () => {
+  const corrected = applyOverride(classifyName('VITE_STRIPE_PUBLISHABLE_KEY'), { criticality: 'high' });
+
+  assert.match(corrected.capability, /^Create charges/);
+  assert.equal(corrected.exposedInFrontend, true);
+});
+
+test('assigning a service to an unknown variable uses that service', () => {
+  const corrected = applyOverride(classifyName('PAYMENTS_KEY'), { serviceKey: 'razorpay', criticality: 'critical' });
+
+  assert.equal(corrected.serviceLabel, 'Razorpay');
+  assert.equal(corrected.capability, 'Create and refund payments');
 });

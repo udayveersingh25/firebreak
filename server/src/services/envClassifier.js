@@ -44,14 +44,22 @@ export function classifyName(name) {
   };
 }
 
-/** Services a user can assign to a secret: one entry per serviceKey, from its first non-public rule. */
+const IMPACT_ORDER = ['critical', 'high', 'medium', 'low'];
+
+/**
+ * Services a user can assign to a secret: one entry per serviceKey, described
+ * by its most serious rule (Stripe -> "Create charges...", not the webhook rule).
+ */
 export const OVERRIDE_SERVICES = [
-  ...new Map(
-    SERVICE_RULES.filter((rule) => !rule.publicByDesign).map((rule) => [
-      rule.serviceKey,
-      { serviceKey: rule.serviceKey, serviceLabel: rule.serviceLabel, capability: rule.capability },
-    ]),
-  ).values(),
+  ...SERVICE_RULES.filter((rule) => !rule.publicByDesign)
+    .toSorted((a, b) => IMPACT_ORDER.indexOf(a.criticality) - IMPACT_ORDER.indexOf(b.criticality))
+    .reduce((byKey, rule) => {
+      if (!byKey.has(rule.serviceKey)) {
+        byKey.set(rule.serviceKey, { serviceKey: rule.serviceKey, serviceLabel: rule.serviceLabel, capability: rule.capability });
+      }
+      return byKey;
+    }, new Map())
+    .values(),
   { serviceKey: UNKNOWN_SERVICE.serviceKey, serviceLabel: UNKNOWN_SERVICE.serviceLabel, capability: UNKNOWN_SERVICE.capability },
 ];
 
@@ -59,16 +67,20 @@ export const OVERRIDE_SERVICES = [
  * Applies the user's correction of service and/or criticality. Choosing
  * "public" marks the variable as public by design, which also clears a
  * browser-exposure flag: the user knows their app better than our rules do.
+ * The description only changes when the service changes, or when a variable
+ * stops being public (its "public by design" text no longer applies).
  */
 export function applyOverride(secret, { serviceKey, criticality }) {
-  const service = serviceKey ? OVERRIDE_SERVICES.find((entry) => entry.serviceKey === serviceKey) : null;
-  const next = {
-    ...secret,
-    ...(service ?? {}),
-    criticality: criticality ?? secret.criticality,
-    userOverride: true,
-  };
-  next.publicByDesign = next.criticality === 'public';
+  const nextCriticality = criticality ?? secret.criticality;
+  const changingService = Boolean(serviceKey) && serviceKey !== secret.serviceKey;
+  const leavingPublic = secret.publicByDesign && nextCriticality !== 'public';
+  const service =
+    changingService || leavingPublic
+      ? OVERRIDE_SERVICES.find((entry) => entry.serviceKey === (serviceKey ?? secret.serviceKey))
+      : null;
+
+  const next = { ...secret, ...(service ?? {}), criticality: nextCriticality, userOverride: true };
+  next.publicByDesign = nextCriticality === 'public';
 
   const split = splitFrontendPrefix(next.name);
   next.exposedInFrontend =

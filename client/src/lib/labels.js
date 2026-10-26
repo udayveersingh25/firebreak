@@ -20,3 +20,12 @@ export function formatDate(value) {
 export function lowerFirst(text) {
   return text ? text[0].toLowerCase() + text.slice(1) : text;
 }
+
+/** The blast-radius sentence for one secret, worded for known, unknown and public ones. */
+export function leakSentence(secret) {
+  if (secret.publicByDesign) return `${secret.capability}.`;
+  if (secret.serviceKey === 'unknown') {
+    return `We do not recognise ${secret.name}, so we cannot say exactly what it unlocks. Treat it as sensitive, or use "Correct" to tell us what it is.`;
+  }
+  return `If ${secret.name} leaks, someone could ${lowerFirst(secret.capability)}.`;
+}

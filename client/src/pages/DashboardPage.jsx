@@ -77,10 +77,46 @@ function ProjectCard({ project }) {
           )}
         </li>
         <li className="flex flex-wrap items-center gap-2">
-          <StatusBadge status="unknown" />
-          {project.packageCount === null ? 'No lockfile yet' : `${project.packageCount} packages, not checked yet`}
+          <DependencySummary project={project} />
         </li>
       </ul>
     </Link>
+  );
+}
+
+function DependencySummary({ project }) {
+  if (project.packageCount === null) {
+    return (
+      <>
+        <StatusBadge status="unknown" /> No lockfile yet
+      </>
+    );
+  }
+  if (project.scanStatus === 'running') return <span className="text-slate-600">Checking packages…</span>;
+  if (project.scanStatus !== 'succeeded') {
+    return (
+      <>
+        <StatusBadge status="unknown" />
+        {project.scanStatus === 'failed' ? 'Last check failed, retry on the project page' : 'Packages not checked yet'}
+      </>
+    );
+  }
+
+  const { fix_now: now, fix_soon: soon, plan_fix: plan, low_risk: low } = project.findingCounts;
+  if (now + soon > 0) {
+    return (
+      <>
+        <StatusBadge status="open" />
+        {now + soon} {now + soon === 1 ? 'vulnerability' : 'vulnerabilities'} to fix now or soon
+      </>
+    );
+  }
+  if (plan + low > 0) {
+    return <span className="text-slate-600">{plan + low} known issues, none urgent</span>;
+  }
+  return (
+    <>
+      <StatusBadge status="not_affected" /> No known vulnerabilities
+    </>
   );
 }
