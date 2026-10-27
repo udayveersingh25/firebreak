@@ -4,6 +4,7 @@
 incident affects your app, what is exposed, and what to do first.
 
 - **Live URL:** https://firebreak-0y7c.onrender.com (free tier: the first visit after 15 idle minutes takes about a minute)
+- **Demo Video:** [https://www.loom.com/share/b8776c66b0d645a29504d1d2c583190e](https://www.loom.com/share/b8776c66b0d645a29504d1d2c583190e)
 - **Status:** all four core workflows work.
 
 ## Problem Statement
