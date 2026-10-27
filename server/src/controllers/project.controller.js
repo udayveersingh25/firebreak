@@ -1,3 +1,4 @@
+import { IncidentResponse } from '../models/IncidentResponse.js';
 import { Project } from '../models/Project.js';
 import { applyOverride, classifyNames, OVERRIDE_SERVICES } from '../services/envClassifier.js';
 import { deleteProjectResponses, rematchProject } from '../services/fanOut.js';
@@ -12,6 +13,18 @@ export async function listProjects(req, res) {
     .sort({ updatedAt: -1 });
   await Promise.all(projects.map((project) => expireStaleScan(project)));
 
+  // Incident responses per project and status, for the status line on each card.
+  const rows = await IncidentResponse.aggregate([
+    { $match: { owner: req.user._id } },
+    { $group: { _id: { project: '$project', status: '$status' }, count: { $sum: 1 } } },
+  ]);
+  const incidentCounts = new Map();
+  for (const { _id, count } of rows) {
+    const key = String(_id.project);
+    if (!incidentCounts.has(key)) incidentCounts.set(key, { open: 0, in_progress: 0, unknown: 0, resolved: 0, not_affected: 0 });
+    incidentCounts.get(key)[_id.status] = count;
+  }
+
   res.json({
     projects: projects.map((project) => ({
       id: String(project._id),
@@ -22,6 +35,7 @@ export async function listProjects(req, res) {
       exposedCount: project.secrets.filter((secret) => secret.exposedInFrontend).length,
       scanStatus: project.scan.status,
       findingCounts: project.scan.status === 'succeeded' ? countByPriority(project.findings) : null,
+      incidentCounts: incidentCounts.get(String(project._id)) ?? { open: 0, in_progress: 0, unknown: 0, resolved: 0, not_affected: 0 },
       updatedAt: project.updatedAt,
     })),
   });

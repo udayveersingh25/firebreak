@@ -4,6 +4,8 @@ import { Notification } from '../models/Notification.js';
 import { Project } from '../models/Project.js';
 import { matchIncident } from './matcher.js';
 import { notifyOnce, responseCreatedMessage, responseNowAffectedMessage } from './notifier.js';
+import { buildPlaybook } from './playbook.js';
+import { verifyStep } from './responseMachine.js';
 
 const MATCH_FIELDS = 'owner name hostingProvider lockfile dependencies secrets secretsUpdatedAt';
 
@@ -51,6 +53,8 @@ async function ensureResponse(incident, project, match) {
           status,
           affectedReason: match.reason,
           affectedSecrets: match.affectedSecrets,
+          // Steps only make sense once we know the project is affected.
+          steps: status === 'open' ? buildPlaybook(incident, project, match) : [],
           timeline: [{ at: new Date(), actor: 'system', action: 'Matched to this incident', detail: match.reason }],
         },
       },
@@ -75,9 +79,11 @@ async function ensureResponse(incident, project, match) {
  * Late joiners: a project that was created, or whose lockfile or secret names
  * changed, is checked against every published incident.
  * - no response yet and now affected or unknown -> create one, notify
- * - response waiting for information ('unknown') -> becomes 'open' if affected
- *   (notify) or 'not_affected' if the new data clears it
- * Responses already being worked on are left to the user.
+ * - response waiting for information ('unknown') -> becomes 'open' with its
+ *   playbook if affected (notify), or 'not_affected' if the new data clears it
+ * - open package responses: a lockfile without the affected version completes
+ *   the automatic "upload your lockfile" step
+ * Everything else about a response being worked on is left to the user.
  */
 export async function rematchProject(projectId) {
   const project = await Project.findById(projectId).select(MATCH_FIELDS).lean();
@@ -92,6 +98,12 @@ export async function rematchProject(projectId) {
       if (match.status !== 'not_affected') await ensureResponse(incident, project, match);
       continue;
     }
+    // A new lockfile can complete (or undo) the "upload your lockfile" check.
+    if (incident.target.type === 'package' && match.status !== 'unknown') {
+      const passed = match.status === 'not_affected';
+      if (verifyStep(existing, 'verify_lockfile', passed, match.reason)) await existing.save();
+    }
+
     if (existing.status !== 'unknown' || match.status === 'unknown') continue;
 
     const at = new Date();
@@ -99,6 +111,7 @@ export async function rematchProject(projectId) {
       existing.status = 'open';
       existing.affectedReason = match.reason;
       existing.affectedSecrets = match.affectedSecrets;
+      existing.steps = buildPlaybook(incident, project, match);
       existing.timeline.push({ at, actor: 'system', action: 'Checked again: affected', detail: match.reason });
       await existing.save();
       await notifyOnce({
