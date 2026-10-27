@@ -111,7 +111,8 @@ async function ensureProject({ owner, name, folder, hostingProvider }) {
 }
 
 async function ensureIncident(fields, admin) {
-  let incident = await Incident.findOne({ title: fields.title });
+  // An archived copy (e.g. from manual testing) is left alone and a live one created.
+  let incident = await Incident.findOne({ title: fields.title, status: { $ne: 'archived' } });
   const created = !incident;
   if (!incident) {
     incident = await Incident.create({ ...fields, sourceUrl: fields.sourceUrl ?? '', isSimulated: true, createdBy: admin._id });
