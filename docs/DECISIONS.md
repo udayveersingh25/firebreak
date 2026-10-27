@@ -367,3 +367,62 @@ Zeabur, Ravi with calm-notes on Vercel) and the three simulated incidents, publi
 
 **Polish.** Checked every page at 375px wide as each demo account. One fix: incident targets
 showed the raw hosting value ("zeabur") instead of its name ("Zeabur").
+
+## M6 (part 2): security review (27 Oct 2026)
+
+**How it was done.** Every route in the API table was checked by reading its middleware
+chain, then attacked with real requests: a local server with three accounts (two users and
+an admin) and the live site for the things only production can show (headers, the proxy in
+front of the rate limiter). The attacks are now a permanent test file,
+`server/tests/security.test.js`, so they run with every `npm test`.
+
+**What was checked, and the result**
+
+| Area | Result |
+|---|---|
+| Logged out, every user route | 401 on all 18 |
+| Another user's project, response or notification | 404 on every route, never 403 |
+| Admin opening a user's project or response | 404. Admin pages show counts only |
+| Normal user on admin routes | 403 on all 7 |
+| Forged tokens (`alg: none`, wrong secret, expired, payload swapped) | All 401 |
+| Role change or deleted account | Applies on the very next request; the dead cookie is cleared |
+| NoSQL operator payloads (`{ "$gt": "" }`) in login, sign-up, secrets, steps, query string | 400 or ignored, never reach a query |
+| Fields only the server may set (`role`, `owner`, `scan`, `findings`, incident `status`, `matchedCounts`) | Silently dropped |
+| Secret values (`KEY=value`, a `values` field, a single string) | 400, and the error never repeats the value |
+| Oversized and malformed bodies | 413 and a plain 400, no internal details |
+| XSS | React escapes all text; no raw HTML anywhere; incident source links must be `http(s)`; the CSP only allows the app's own scripts |
+| CSRF | `SameSite=Lax` cookie plus JSON-only bodies. `onrender.com` is on the Public Suffix List (checked), so other Render apps count as different sites and their requests never carry our cookie |
+| Live security headers | CSP, HSTS, `nosniff`, `frame-ancestors 'self'`, `no-referrer` all present |
+| Rate limits behind Render's proxy | A forged `X-Forwarded-For` header does not get a fresh allowance (tested on the live site) |
+| Secrets in Git | The real cluster host, database user, database password and JWT secret were searched for across all history: none found. Only `.env.example` files were ever committed, with placeholders |
+| Dependencies | `npm audit`: 0 known vulnerabilities in server and client |
+
+**Found and fixed**
+
+1. **Anyone could make the server read a 6 MB body without logging in.** The large body
+   limit for lockfile uploads was applied before the login check, so an anonymous request
+   was read and parsed in full before being refused. Now that route reads its body only
+   after the login and ownership checks pass; everyone else's body is still capped at
+   100 kb. A test sends 7 MB anonymously and expects a 401, not a parse.
+
+No other route needed a change.
+
+**Accepted, with reasons**
+
+- **Logging out does not cancel the token on the server.** The cookie is deleted, but a copy
+  stolen earlier would work until it expires (7 days). Stopping that needs a per-user token
+  version or a deny-list, which is more data model than this scope. The cookie is
+  `httpOnly`, so page scripts cannot copy it, and deleting the account kills it at once.
+- **Sign-up says when an email already has an account.** The spec asks for a 409 here so
+  the form can tell people to log in instead. Login never reveals it, and sign-ups are
+  limited to 10 per 15 minutes per IP.
+- **A new lockfile always starts a scan, even inside the 30-second cooldown.** Skipping it
+  would show findings for the old file, which breaks "never false calm". Uploads are still
+  bounded by the overall limit (300 requests per 15 minutes per IP), and OSV results are
+  cached for 24 hours.
+- **Login accepts passwords longer than bcrypt's 72-byte limit.** Sign-up caps passwords at
+  72 bytes, so the extra characters can only follow the full real password.
+- **The demo password is public.** It unlocks only the seeded demo accounts. The live admin
+  account was registered by the owner, and the seed never resets an existing password.
+- **No limit on projects per account.** Each project is small and the request limits bound
+  how fast they can be created. Listed under future work.

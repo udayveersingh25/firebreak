@@ -150,6 +150,11 @@ first request after that can take about a minute while the service wakes up.
 - **Hardening:** helmet security headers, rate limits (10 sign-ups and 10 failed logins per
   15 minutes per IP), strict zod validation that blocks NoSQL operator injection, request
   bodies never logged, generic error messages for unexpected failures.
+- **Reviewed and tested:** every route was checked for login, ownership and validation, and
+  attacked with real requests (forged tokens, cross-user access, injection payloads,
+  oversized bodies). Those attacks run as tests in
+  [server/tests/security.test.js](server/tests/security.test.js); findings and accepted
+  trade-offs are in [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Data Sources
 
@@ -162,6 +167,9 @@ vulnerability database run by Google's open source security team.
 - Incidents are curated by an admin; there is no automatic ingestion from news feeds.
 - Publishing fans out inside the request; at larger scale this moves to a job queue.
 - Notifications are in-app only; email alerts are future work.
+- Logging out deletes the session cookie but does not revoke the token on the server; a
+  per-user token version would close that gap.
+- There is no cap on projects per account, beyond the request rate limits.
 
 ## Demo Accounts
 
