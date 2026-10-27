@@ -4,8 +4,7 @@
 incident affects your app, what is exposed, and what to do first.
 
 - **Live URL:** https://firebreak-0y7c.onrender.com (free tier: the first visit after 15 idle minutes takes about a minute)
-- **Status:** in development. Onboarding, the exposure check and incident publishing work; the features below are checked
-  off as they ship.
+- **Status:** all four core workflows work; final polish, seed data and the security review are in progress.
 
 ## Problem Statement
 
@@ -39,7 +38,7 @@ flag things that are fine.
       OSV.dev, ranked by real-world risk
 - [x] **Incident publishing (admin):** preview how many projects are affected, publish,
       notify, with no duplicates on retry
-- [ ] **Guided response:** ordered checklist, an upgrade step that verifies itself, a
+- [x] **Guided response:** ordered checklist, an upgrade step that verifies itself, a
       timeline, and "not affected" with a reason
 
 ## Tech Stack

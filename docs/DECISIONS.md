@@ -300,3 +300,47 @@ for projects that join later. 153 tests.
 
 11. **Deleting a project removes its responses and their notifications**, so no
     notification ever links to something that no longer exists.
+
+## M5: Guided response (27 Oct 2026)
+
+**Built:** the playbook generator, the response state machine, automatic lockfile
+verification, the responses API, the response page, incidents on the project page and
+dashboard. 207 tests.
+
+**Decisions**
+
+1. **The state machine is one small module of pure rules.** Ticking a step, resolving,
+   "not affected" and reopening each check the current state, change it, and add a
+   timeline entry. A change that is not allowed changes nothing and returns a clear 409
+   (or 400 for a short reason). Every allowed and forbidden transition has a test.
+
+2. **Resolve is enforced by the server, not the button.** The button stays clickable,
+   and the server answers "Finish every step first: 1 left, including the lockfile
+   check." This makes the rule visible in the demo, and a modified browser cannot skip it.
+
+3. **The lockfile step can only be completed by the system.** It passes when a newly
+   uploaded lockfile has no version in the affected range, and is undone if a later
+   lockfile brings one back. Users get a 409 if they try to tick it.
+
+4. **New keys before old ones are revoked.** The playbook creates each new key, puts it in
+   the host's settings and redeploys before any revoke step, and the page explains why:
+   revoking first would take the app down. Secrets are ordered most critical first, and
+   only critical ones get a "check logs and billing" step.
+
+5. **Steps are worded for the kind of secret.** Your own login secret gets "Generate a new
+   random value" with a command, a database gets "new database credentials", an
+   unrecognised variable gets neutral wording. *Rejected:* one template, which produced
+   sentences like "Create a new Your app's login system key".
+
+6. **Transitive dependencies get specific advice.** For a package you did not install
+   directly, the upgrade step explains updating the parent package or adding an npm
+   `overrides` entry, instead of a command that would not help.
+
+7. **Playbooks are created when we know the project is affected.** A response waiting for
+   information has no steps. When the missing data arrives it becomes open with its
+   playbook, or not affected.
+
+8. **Reopening returns to where the work was:** in progress if any step was done, open if
+   none, or waiting for information if it never had steps.
+
+9. **Another user's response is a 404 on every route**, the same as projects.

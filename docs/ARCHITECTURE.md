@@ -133,3 +133,23 @@ flowchart TB
   creates a duplicate response or notification. It only fills gaps.
 - **Preview equals publish:** both use the same matching loop.
 - **At larger scale** the fan-out would run in a job queue instead of the publish request.
+
+## Incident response states
+
+```mermaid
+stateDiagram-v2
+  [*] --> open: matched, affected
+  [*] --> unknown: matched, data missing
+  unknown --> open: data arrives, affected (system)
+  unknown --> not_affected: data arrives, not affected (system)
+  open --> in_progress: first step done
+  in_progress --> resolved: every step done and verified
+  open --> not_affected: user, with a reason
+  in_progress --> not_affected: user, with a reason
+  unknown --> not_affected: user, with a reason
+  not_affected --> open: reopen
+  not_affected --> in_progress: reopen, work had started
+  resolved --> [*]
+```
+
+Rules live in `server/src/services/responseMachine.js`; anything else is a 409.
