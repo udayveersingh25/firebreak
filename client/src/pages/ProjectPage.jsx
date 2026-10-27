@@ -4,6 +4,7 @@ import { deleteProject, getProject, overrideSecret } from '../api/projects.js';
 import { Button, ButtonLink } from '../components/Button.jsx';
 import DependencySection from '../components/DependencySection.jsx';
 import EnvNamesInput from '../components/EnvNamesInput.jsx';
+import ProjectIncidents from '../components/ProjectIncidents.jsx';
 import { ErrorState, LoadingState } from '../components/PageState.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 import { useApiData } from '../hooks/useApiData.js';
@@ -52,6 +53,7 @@ export default function ProjectPage() {
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
       <ProjectHeader project={project} />
       <div className="mt-8 space-y-8">
+        <ProjectIncidents project={project} />
         <ExposureSection project={project} onUpdated={update} />
         <DependencySection project={project} onUpdated={update} />
         <InventorySection project={project} services={data.overrideOptions.services} onUpdated={update} />

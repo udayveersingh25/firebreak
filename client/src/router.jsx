@@ -13,6 +13,7 @@ import AdminIncidentsPage from './pages/admin/AdminIncidentsPage.jsx';
 import RequireAdmin from './components/RequireAdmin.jsx';
 import ProjectPage from './pages/ProjectPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
+import ResponsePage from './pages/ResponsePage.jsx';
 import RouteErrorPage from './pages/RouteErrorPage.jsx';
 
 export const router = createBrowserRouter([
@@ -40,6 +41,7 @@ export const router = createBrowserRouter([
               { path: 'projects/new', element: <NewProjectPage /> },
               { path: 'projects/:id', element: <ProjectPage /> },
               { path: 'notifications', element: <NotificationsPage /> },
+              { path: 'responses/:id', element: <ResponsePage /> },
               {
                 element: <RequireAdmin />,
                 children: [

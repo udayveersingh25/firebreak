@@ -79,6 +79,7 @@ function ProjectCard({ project }) {
         <li className="flex flex-wrap items-center gap-2">
           <DependencySummary project={project} />
         </li>
+        <IncidentSummary counts={project.incidentCounts} />
       </ul>
     </Link>
   );
@@ -118,5 +119,25 @@ function DependencySummary({ project }) {
     <>
       <StatusBadge status="not_affected" /> No known vulnerabilities
     </>
+  );
+}
+
+function IncidentSummary({ counts }) {
+  const active = counts.open + counts.in_progress;
+  if (active === 0 && counts.unknown === 0) return null;
+  return (
+    <li className="flex flex-wrap items-center gap-2">
+      {active > 0 ? (
+        <>
+          <StatusBadge status={counts.open > 0 ? 'open' : 'in_progress'} />
+          {active} {active === 1 ? 'incident needs' : 'incidents need'} your action
+        </>
+      ) : (
+        <>
+          <StatusBadge status="unknown" />
+          {counts.unknown} {counts.unknown === 1 ? 'incident needs' : 'incidents need'} more information
+        </>
+      )}
+    </li>
   );
 }
