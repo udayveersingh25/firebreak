@@ -349,7 +349,7 @@ dashboard. 207 tests.
 
 **What was built.** `npm run seed` loads an admin, two demo users (Maya with vibe-store on
 Zeabur, Ravi with calm-notes on Vercel) and the three simulated incidents, published.
-`docs/DEMO.md` is the 3 to 5 minute demo script.
+The 3 to 5 minute demo script is kept privately by the owner, outside the repository.
 
 **Key decisions**
 - **The seed goes through the real services.** It parses the real demo lockfiles, classifies
