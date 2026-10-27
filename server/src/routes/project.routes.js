@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import express, { Router } from 'express';
 import {
   createProject,
   deleteProject,
@@ -28,7 +28,15 @@ router.get('/', listProjects);
 router.post('/', validate({ body: createProjectBody }), createProject);
 router.get('/:id', loadOwnedProject, getProject);
 router.delete('/:id', loadOwnedProject, deleteProject);
-router.put('/:id/lockfile', loadOwnedProject, validate({ body: lockfileBody }), uploadLockfile);
+// A 5 MB lockfile grows when wrapped in JSON. Read only after requireAuth and
+// loadOwnedProject have passed; app.js leaves this route's body unread.
+router.put(
+  '/:id/lockfile',
+  loadOwnedProject,
+  express.json({ limit: '6mb' }),
+  validate({ body: lockfileBody }),
+  uploadLockfile,
+);
 router.post('/:id/scan', loadOwnedProject, scanProject);
 router.put('/:id/secrets', loadOwnedProject, validate({ body: secretsBody }), replaceSecrets);
 router.patch(

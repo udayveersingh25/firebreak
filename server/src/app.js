@@ -30,11 +30,11 @@ export function createApp({ clientDistPath, logRequests = false } = {}) {
   const api = express.Router();
   if (logRequests) api.use(requestLogger);
   api.use(apiLimiter());
-  // The lockfile upload is the only route allowed a large body: a 5 MB file
-  // grows when wrapped in JSON. Once it has been read, the 100 kb parser
-  // below sees a finished request and skips it.
-  api.put('/projects/:id/lockfile', express.json({ limit: '6mb' }));
-  api.use(express.json({ limit: '100kb' }));
+  // Every body is limited to 100 kb, except the lockfile upload, which reads
+  // its own (up to 6 MB) only after the login and ownership checks (see
+  // project.routes.js), so nobody can make the server parse 6 MB anonymously.
+  const smallJson = express.json({ limit: '100kb' });
+  api.use((req, res, next) => (isLockfileUpload(req) ? next() : smallJson(req, res, next)));
   api.use(cookieParser());
   api.use(apiRoutes);
   api.use(apiNotFound);
@@ -45,6 +45,14 @@ export function createApp({ clientDistPath, logRequests = false } = {}) {
   app.use(notFound);
   app.use(errorHandler);
   return app;
+}
+
+// Matches the same paths as router.put('/:id/lockfile') under /projects
+// (Express routes ignore case and allow one trailing slash).
+const LOCKFILE_UPLOAD = /^\/projects\/[^/]+\/lockfile\/?$/i;
+
+function isLockfileUpload(req) {
+  return req.method === 'PUT' && LOCKFILE_UPLOAD.test(req.path);
 }
 
 function serveClient(app, distPath) {
