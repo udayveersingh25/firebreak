@@ -4,7 +4,7 @@
 incident affects your app, what is exposed, and what to do first.
 
 - **Live URL:** https://firebreak-0y7c.onrender.com (free tier: the first visit after 15 idle minutes takes about a minute)
-- **Status:** all four core workflows work; final polish, seed data and the security review are in progress.
+- **Status:** all four core workflows work.
 
 ## Problem Statement
 
