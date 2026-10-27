@@ -1,6 +1,7 @@
 import { Incident } from '../models/Incident.js';
 import { IncidentResponse } from '../models/IncidentResponse.js';
 import { Project } from '../models/Project.js';
+import { ensurePlaybook } from '../services/fanOut.js';
 import {
   declareNotAffected,
   reopen,
@@ -79,6 +80,7 @@ export async function listResponses(req, res) {
 }
 
 export async function getResponse(req, res) {
+  await ensurePlaybook(req.response);
   res.json(await detail(req.response));
 }
 

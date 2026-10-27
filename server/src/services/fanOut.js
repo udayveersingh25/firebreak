@@ -136,3 +136,25 @@ export async function deleteProjectResponses(projectId) {
   await Notification.deleteMany({ dedupeKey: { $in: keys } });
   await IncidentResponse.deleteMany({ project: projectId });
 }
+
+/**
+ * Responses created before playbooks existed have no steps. Builds them the
+ * first time such a response is opened, so it can still be worked through and
+ * resolved. Returns true when the response changed.
+ */
+export async function ensurePlaybook(response) {
+  if (response.steps.length > 0 || !['open', 'in_progress'].includes(response.status)) return false;
+  const [incident, project] = await Promise.all([
+    Incident.findById(response.incident),
+    Project.findById(response.project).select(MATCH_FIELDS).lean(),
+  ]);
+  if (!incident || !project) return false;
+  const match = matchIncident(incident, project);
+  if (match.status !== 'affected') return false;
+
+  response.affectedSecrets = match.affectedSecrets;
+  response.steps = buildPlaybook(incident, project, match);
+  response.timeline.push({ at: new Date(), actor: 'system', action: 'Checklist added', detail: 'Steps were generated for this response.' });
+  await response.save();
+  return true;
+}

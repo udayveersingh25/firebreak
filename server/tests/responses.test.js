@@ -222,6 +222,16 @@ describe('guided response', { skip: !process.env.TEST_MONGODB_URI && 'set TEST_M
     assert.ok(litellm.stepsTotal >= 4);
   });
 
+  test('a response created without steps gets its checklist when opened', async () => {
+    const IncidentResponse = mongoose.model('IncidentResponse');
+    await IncidentResponse.updateOne({ _id: litellmResponseId }, { $set: { steps: [] } });
+
+    const { body } = await api.request('GET', `/responses/${litellmResponseId}`, { cookie: maya });
+
+    assert.ok(body.response.steps.length >= 4);
+    assert.equal(body.response.timeline.at(-1).action, 'Checklist added');
+  });
+
   test('the list filter is validated', async () => {
     assert.equal((await api.request('GET', '/responses?project=not-an-id', { cookie: maya })).status, 400);
   });
