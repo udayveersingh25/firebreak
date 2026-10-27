@@ -100,6 +100,7 @@ Other scripts:
 | `TEST_MONGODB_URI=<uri> npm test` | Also runs the database tests, in separate `firebreak_test_*` databases that are wiped before and after |
 | `npm run build` | Builds the website into `client/dist` |
 | `npm start` | Production mode: one server on `PORT` serving the API and `client/dist` |
+| `npm run seed` | Loads the demo data (see Demo Accounts). Safe to run again: it never duplicates anything or resets an existing password |
 
 ## Environment Variables
 
@@ -128,6 +129,9 @@ Firebreak runs as one free Render web service, defined in [render.yaml](render.y
    and `ADMIN_EMAILS` when asked. Render generates `JWT_SECRET` itself.
 4. Render runs `npm run build:render`, then `npm start`, and waits for `/api/health` to
    report the database as connected before sending traffic.
+
+5. Load the demo data once: in the Render service's **Shell** tab, run
+   `node server/scripts/seed.js` (Render already provides the environment variables).
 
 **Cold starts:** free Render services go to sleep after 15 minutes without traffic. The
 first request after that can take about a minute while the service wakes up.
@@ -161,7 +165,17 @@ vulnerability database run by Google's open source security team.
 
 ## Demo Accounts
 
-_Added with the seed data in milestone M6._
+`npm run seed` creates these. Every seeded account uses the password `firebreak-demo`
+(set `SEED_PASSWORD` before seeding to change it).
+
+| Account | Email | What you will see |
+|---|---|---|
+| Admin | the first address in `ADMIN_EMAILS` | The incidents list with the three simulated incidents, their affected counts, and the editor with preview and publish. If that account already existed, the seed keeps its password |
+| Maya | `maya@example.com` | **vibe-store** on Zeabur: `VITE_OPENAI_API_KEY` flagged as exposed in the frontend, vulnerability findings ranked by priority, and three open incidents with their checklists |
+| Ravi | `ravi@example.com` | **calm-notes** on Vercel: up-to-date packages, no exposed keys, and none of the incidents apply. This is the "calm" half of the promise |
+
+The demo projects come from real lockfiles in [demo/](demo/). Their `.env.example` files hold
+placeholder values only, and the seed reads just the variable names from them.
 
 ## AI Usage
 
