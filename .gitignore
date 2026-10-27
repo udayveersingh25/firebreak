@@ -13,3 +13,4 @@ coverage/
 # OS and editor noise
 .DS_Store
 *.log
+.claude/

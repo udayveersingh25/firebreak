@@ -1,5 +1,7 @@
 // Small labels shared by every place an incident appears.
 
+import { hostingLabel } from '../lib/labels.js';
+
 const SEVERITY_STYLES = {
   critical: 'text-slate-900 ring-slate-400 font-semibold',
   high: 'text-slate-800 ring-slate-300',
@@ -47,5 +49,5 @@ export function describeTarget(target, services = []) {
     const label = services.find((service) => service.serviceKey === target.serviceKey)?.serviceLabel ?? target.serviceKey;
     return `Anyone using ${label}`;
   }
-  return `Apps hosted on ${target.hostingProvider}`;
+  return `Apps hosted on ${hostingLabel(target.hostingProvider)}`;
 }
