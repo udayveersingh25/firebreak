@@ -344,3 +344,26 @@ dashboard. 207 tests.
    none, or waiting for information if it never had steps.
 
 9. **Another user's response is a 404 on every route**, the same as projects.
+
+## M6 (part 1): seed data, demo script, polish
+
+**What was built.** `npm run seed` loads an admin, two demo users (Maya with vibe-store on
+Zeabur, Ravi with calm-notes on Vercel) and the three simulated incidents, published.
+`docs/DEMO.md` is the 3 to 5 minute demo script.
+
+**Key decisions**
+- **The seed goes through the real services.** It parses the real demo lockfiles, classifies
+  names with the same classifier, runs a real OSV scan, and publishes through the same fan-out
+  as the admin page. The demo therefore shows what the product actually does, not hand-made data.
+- **Idempotent by natural keys.** Users by email, projects by owner and name, incidents by
+  title. Running it twice changes nothing, and fan-out's unique index means no duplicate
+  responses or notifications.
+- **It never resets a password.** If the admin account already exists (for example the owner
+  registered it on the live site), the seed only makes sure it is an admin.
+- **Only names are read from the demo `.env.example` files**, with the same rule as the browser.
+- **One shared demo password, published in the README.** Evaluators need to sign in. The
+  trade-off: anyone who reads the README can sign in as a demo user. The demo accounts hold
+  only demo data, and `SEED_PASSWORD` changes the password before seeding.
+
+**Polish.** Checked every page at 375px wide as each demo account. One fix: incident targets
+showed the raw hosting value ("zeabur") instead of its name ("Zeabur").
